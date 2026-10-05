@@ -1,5 +1,6 @@
 import { schluesselPasst } from "./auth.ts";
 import { APP_HTML, MANIFEST } from "./app.ts";
+import { DATENSCHUTZ_HTML } from "./datenschutz.ts";
 import { EINRICHTEN_HTML } from "./einrichten.ts";
 import { abschluss, googleStatus, speichereClient, startUrl, trenne } from "./google.ts";
 import { ICON_192, ICON_512, base64ZuBytes } from "./icon.ts";
@@ -41,6 +42,9 @@ export default {
       return new Response(bytes, { headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" } });
     }
 
+    if (get && pfad === "/datenschutz") {
+      return new Response(DATENSCHUTZ_HTML, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
     if (get && pfad === "/einrichten") {
       return new Response(EINRICHTEN_HTML, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
     }

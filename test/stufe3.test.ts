@@ -59,3 +59,9 @@ test("Einrichten-Seite und App haben gültiges Skript", () => {
     new Function(m![1]);
   }
 });
+
+test("Datenschutz-Seite nennt Gmail, Kalender und das Nicht-Senden", async () => {
+  const { DATENSCHUTZ_HTML } = await import("../src/datenschutz.ts");
+  assert.match(DATENSCHUTZ_HTML, /Gmail/);
+  assert.match(DATENSCHUTZ_HTML, /versendet keine E-Mails/);
+});
