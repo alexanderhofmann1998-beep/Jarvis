@@ -1,5 +1,7 @@
 import { schluesselPasst } from "./auth.ts";
 import { APP_HTML, MANIFEST } from "./app.ts";
+import { EINRICHTEN_HTML } from "./einrichten.ts";
+import { abschluss, googleStatus, speichereClient, startUrl, trenne } from "./google.ts";
 import { ICON_192, ICON_512, base64ZuBytes } from "./icon.ts";
 import { fehlerText } from "./fehler.ts";
 import { jarvis } from "./jarvis.ts";
@@ -39,6 +41,11 @@ export default {
       return new Response(bytes, { headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" } });
     }
 
+    if (get && pfad === "/einrichten") {
+      return new Response(EINRICHTEN_HTML, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
+    }
+    if (get && pfad === "/google/zurueck") return googleZurueck(url, env);
+
     // Ab hier nur mit Passwort
     const ip = request.headers.get("CF-Connecting-IP") ?? "unbekannt";
     if (await istGesperrt(env, ip)) {
@@ -56,7 +63,22 @@ export default {
         anthropic: Boolean(env.ANTHROPIC_API_KEY),
         speicher: Boolean(env.SPEICHER),
         spracherkennung: Boolean(env.AI),
+        notion: Boolean(env.NOTION_TOKEN),
+        google: (await googleStatus(env)).verbunden,
       });
+    }
+    if (get && pfad === "/einrichten/status") return Response.json({ google: await googleStatus(env) });
+    if (request.method === "POST" && pfad === "/einrichten/google") return googleSpeichern(request, env);
+    if (request.method === "POST" && pfad === "/einrichten/google/trennen") {
+      await trenne(env);
+      return Response.json({ ok: true });
+    }
+    if (request.method === "POST" && pfad === "/google/start") {
+      try {
+        return Response.json({ url: await startUrl(env, url.origin) });
+      } catch (e) {
+        return Response.json({ fehler: e instanceof Error ? e.message : String(e) }, { status: 400 });
+      }
     }
 
     if (request.method === "POST" && pfad === "/gespraech") return gespraech(request, env, ctx);
@@ -143,5 +165,36 @@ async function befehl(request: Request, env: Env, ctx: ExecutionContext): Promis
     return new Response(antwort, { headers: TEXT });
   } catch (err) {
     return new Response(fehlerText(err), { status: 500, headers: TEXT });
+  }
+}
+
+async function googleSpeichern(request: Request, env: Env): Promise<Response> {
+  const b = (await request.json().catch(() => ({}))) as { client_id?: string; client_secret?: string };
+  const id = (b.client_id ?? "").trim();
+  const secret = (b.client_secret ?? "").trim();
+  if (!id.endsWith(".apps.googleusercontent.com")) {
+    return Response.json({ fehler: "Die Client-ID sieht falsch aus. Sie endet auf apps.googleusercontent.com." }, { status: 400 });
+  }
+  if (!secret) return Response.json({ fehler: "Das Client-Secret fehlt." }, { status: 400 });
+  await speichereClient(env, id, secret);
+  return Response.json({ ok: true });
+}
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+async function googleZurueck(url: URL, env: Env): Promise<Response> {
+  const seite = (titel: string, text: string) =>
+    new Response(
+      "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><body style='background:#0b0b0c;color:#ece8e1;font-family:system-ui;padding:24px'><h2>" +
+        esc(titel) + "</h2><p>" + esc(text) + "</p><p><a style='color:#e8a46a' href='/einrichten'>Zurück zu Einrichten</a></p>",
+      { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } },
+    );
+  const fehler = url.searchParams.get("error");
+  if (fehler) return seite("Nicht verbunden", "Google meldet: " + fehler);
+  try {
+    await abschluss(env, url.origin, url.searchParams.get("code") ?? "", url.searchParams.get("state") ?? "");
+    return seite("Verbunden", "Google ist mit Jarvis verbunden. Du kannst dieses Fenster schließen.");
+  } catch (e) {
+    return seite("Nicht verbunden", e instanceof Error ? e.message : String(e));
   }
 }

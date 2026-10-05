@@ -2,6 +2,8 @@ import type { Env } from "./index.ts";
 import { regelLernen, regelVergessen } from "./gedaechtnis.ts";
 import { OBJEKTE, STANDORTE, type ListenDef } from "./listen.ts";
 import { merke, zeileAendern, zeileAnlegen, zeilenSuchen } from "./notion.ts";
+import { termineAbrufen, terminEintragen, terminVerschieben } from "./kalender.ts";
+import { gmailEntwurf, gmailLesen, gmailNeue, gmailSortieren, gmailSuchen, gmailWichtige } from "./gmail.ts";
 
 type Eingabe = Record<string, any>;
 export type Werkzeug = {
@@ -56,6 +58,86 @@ export const WERKZEUGE: Werkzeug[] = [
   },
   ...listenWerkzeuge("objekt", "Objekte (Wohnungen, Immobilien)", OBJEKTE),
   ...listenWerkzeuge("standort", "Standorte (Orte mit Unis, Bevölkerungswachstum, Arbeitgebern)", STANDORTE),
+  {
+    def: {
+      name: "termine_abrufen",
+      description: "Liest Termine aus allen Google-Kalendern. von und bis als Datum JJJJ-MM-TT oder JJJJ-MM-TTTHH:MM in Berliner Zeit. Ohne bis gilt ein Tag. Bei mehreren Tagen bis angeben (Datum bis einschließlich).",
+      input_schema: { type: "object", properties: { von: { type: "string" }, bis: { type: "string" } }, required: ["von"] },
+    },
+    run: (i, env) => termineAbrufen(env, String(i.von ?? ""), i.bis ? String(i.bis) : undefined),
+  },
+  {
+    def: {
+      name: "termin_eintragen",
+      description: "Trägt einen Termin in den Google-Kalender ein. start als JJJJ-MM-TTTHH:MM in Berliner Zeit. Ohne ende dauert er eine Stunde. Doppelte Einträge werden erkannt. Trage nie doppelt ein: steht im Verlauf schon, dass er eingetragen ist, sag das.",
+      input_schema: {
+        type: "object",
+        properties: { titel: { type: "string" }, start: { type: "string" }, ende: { type: "string" }, ort: { type: "string" }, notiz: { type: "string" }, erinnerung_min: { type: "integer", description: "Erinnerung in Minuten vorher" } },
+        required: ["titel", "start"],
+      },
+    },
+    run: (i, env) => terminEintragen(env, { titel: String(i.titel ?? ""), start: String(i.start ?? ""), ende: i.ende, ort: i.ort, notiz: i.notiz, erinnerung_min: i.erinnerung_min }),
+  },
+  {
+    def: {
+      name: "termin_verschieben",
+      description: "Verschiebt einen bestehenden Termin, findet ihn per Stichwort im Titel (suche) und optional dem bisherigen Tag (JJJJ-MM-TT). Es bleibt derselbe Termin. Ohne neues_ende bleibt die Dauer. Serientermine und Löschen gibt es nicht, das macht Alex selbst.",
+      input_schema: {
+        type: "object",
+        properties: { suche: { type: "string" }, tag: { type: "string" }, id: { type: "string", description: "Nur wenn mehrere passen" }, neuer_start: { type: "string" }, neues_ende: { type: "string" } },
+        required: ["neuer_start"],
+      },
+    },
+    run: (i, env) => terminVerschieben(env, { suche: i.suche, tag: i.tag, id: i.id, neuer_start: String(i.neuer_start ?? ""), neues_ende: i.neues_ende }),
+  },
+  {
+    def: {
+      name: "gmail_wichtige",
+      description: "Zeigt ungelesene, wahrscheinlich wichtige Mails im Posteingang (ohne Werbung, Social, Updates) der letzten 14 Tage.",
+      input_schema: { type: "object", properties: { max: { type: "integer" } } },
+    },
+    run: (i, env) => gmailWichtige(env, i.max),
+  },
+  {
+    def: {
+      name: "gmail_neue",
+      description: "Zeigt neue Mails im Posteingang der letzten 24 Stunden.",
+      input_schema: { type: "object", properties: { max: { type: "integer" } } },
+    },
+    run: (i, env) => gmailNeue(env, i.max),
+  },
+  {
+    def: {
+      name: "gmail_suchen",
+      description: "Sucht Mails mit Gmail-Suchsyntax (from:, subject:, has:attachment …). Ohne Zeitangabe die letzten 30 Tage, auch archivierte. Fragt Alex nach einer Mail, suche zuerst selbst, bevor du nachfragst. Liefert thread- und mail-ids.",
+      input_schema: { type: "object", properties: { suche: { type: "string" }, max: { type: "integer" } }, required: ["suche"] },
+    },
+    run: (i, env) => gmailSuchen(env, String(i.suche ?? ""), i.max),
+  },
+  {
+    def: {
+      name: "gmail_lesen",
+      description: "Liest den Verlauf (thread) einer Mail ohne alte Zitate und Signaturen. thread_id aus einer Suche.",
+      input_schema: { type: "object", properties: { thread_id: { type: "string" } }, required: ["thread_id"] },
+    },
+    run: (i, env) => gmailLesen(env, String(i.thread_id ?? "")),
+  },
+  {
+    def: {
+      name: "gmail_entwurf",
+      description: "Legt einen Antwort-Entwurf im selben Verlauf in Gmail an (thread_id). Für eine neue Mail stattdessen an und betreff angeben. SENDET NIE. Schreib den Text im Stil von Alex, kurz und höflich, und sag nie etwas zu, was Alex entscheiden muss (Preise, Termine, Geld).",
+      input_schema: { type: "object", properties: { thread_id: { type: "string" }, text: { type: "string" }, an: { type: "string" }, betreff: { type: "string" } }, required: ["text"] },
+    },
+    run: (i, env) => gmailEntwurf(env, { thread_id: i.thread_id, text: String(i.text ?? ""), an: i.an, betreff: i.betreff }),
+  },
+  {
+    def: {
+      name: "gmail_sortieren",
+      description: "Sortiert Mails: optional ein eigenes Label unter Jarvis/ vergeben und/oder archivieren (nimmt sie aus dem Posteingang). Nur mit mail-ids aus einer Suche. Im Zweifel nie archivieren.",
+      input_schema: { type: "object", properties: { mail_ids: { type: "array", items: { type: "string" } }, label: { type: "string" }, archivieren: { type: "boolean" } }, required: ["mail_ids"] },
+    },
+    run: (i, env) => gmailSortieren(env, { mail_ids: i.mail_ids ?? [], label: i.label, archivieren: i.archivieren }),
+  },
   {
     def: {
       name: "regel_lernen",

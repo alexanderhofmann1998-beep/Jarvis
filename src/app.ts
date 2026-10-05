@@ -51,6 +51,7 @@ main{height:100%;display:flex;flex-direction:column;align-items:center;padding:e
 .leiste input{flex:1;min-width:0;background:#161617;border:1px solid #2a2a2c;border-radius:12px;color:#ece8e1;padding:12px 14px;font-size:16px;outline:none}
 .leiste input:focus{border-color:#e07a2f}
 button{background:#161617;border:1px solid #2a2a2c;border-radius:12px;color:#ece8e1;padding:0 14px;font-size:14px;cursor:pointer;min-height:44px}
+a.kopfknopf{color:#a9a39a;text-decoration:none;font-size:13px;padding:6px 10px}
 button.kopfknopf{min-height:0;padding:6px 10px;border:none;background:none;color:#a9a39a;font-size:13px}
 #tafel,#login{position:fixed;inset:0;background:#0b0b0c;z-index:10;display:flex;flex-direction:column;padding:env(safe-area-inset-top,0px) 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
 #tafel .oben{display:flex;justify-content:space-between;align-items:center;padding:16px 0}
@@ -69,7 +70,7 @@ button.kopfknopf{min-height:0;padding:6px 10px;border:none;background:none;color
 </head>
 <body>
 <main id="haupt" class="ruhe">
-  <div class="kopf"><span>JARVIS</span><button class="kopfknopf" id="tafelbtn">Tafel</button></div>
+  <div class="kopf"><span>JARVIS</span><span><a class="kopfknopf" href="/einrichten">Einrichten</a><button class="kopfknopf" id="tafelbtn">Tafel</button></span></div>
   <div class="mitte">
     <div id="kugelfeld"><div id="kugel"></div></div>
     <div id="status">Tippe auf die Kugel</div>
