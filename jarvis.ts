@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Env } from "./index.ts";
 import { MODELL_ERSATZ, MODELL_GESPRAECH } from "./config.ts";
 import { istModellFehler, pruefeSchluessel } from "./fehler.ts";
+import { lageText, markiereGelesen, ungelesene } from "./berichte.ts";
 import { ladeRegeln, ladeWissenSicher } from "./gedaechtnis.ts";
 import { grundregeln, wissenBlock } from "./prompt.ts";
 import { createSatzTeiler } from "./saetze.ts";
@@ -17,6 +18,7 @@ export async function jarvis(
   verlauf: Msg[],
   env: Env,
   onSatz: (satz: string) => void,
+  anhaenge: any[] = [],
 ): Promise<string> {
   const keyProblem = pruefeSchluessel(env.ANTHROPIC_API_KEY);
   if (keyProblem) throw new Error(keyProblem);
@@ -24,15 +26,21 @@ export async function jarvis(
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
   // Wissen und Regeln laden. Fehlt etwas, laeuft das Gespraech trotzdem.
-  const [wissen, regeln] = await Promise.all([ladeWissenSicher(env), ladeRegeln(env)]);
-  const system = [
+  const [wissen, regeln, lage] = await Promise.all([ladeWissenSicher(env), ladeRegeln(env), ungelesene(env).catch(() => [])]);
+  const system: any[] = [
     { type: "text" as const, text: grundregeln(), cache_control: { type: "ephemeral" as const } },
     { type: "text" as const, text: wissenBlock(wissen.text, regeln, wissen.problem), cache_control: { type: "ephemeral" as const } },
   ];
+  if (lage.length) system.push({ type: "text" as const, text: lageText(lage) });
 
   const messages: any[] = [
     ...verlauf,
-    { role: "user", content: "Heute ist " + jetztText() + ". " + befehl },
+    {
+      role: "user",
+      content: anhaenge.length
+        ? [...anhaenge, { type: "text", text: "Heute ist " + jetztText() + ". " + befehl }]
+        : "Heute ist " + jetztText() + ". " + befehl,
+    },
   ];
   const eigene = WERKZEUGE.map((w) => w.def);
 
@@ -97,6 +105,7 @@ export async function jarvis(
         break;
       }
       for (const s of teiler.flush()) onSatz(s);
+      if (lage.length && gesamt.trim()) await markiereGelesen(env, lage.map((b) => b.id)).catch(() => {});
       return gesamt.trim();
     } catch (err) {
       letzterFehler = err;

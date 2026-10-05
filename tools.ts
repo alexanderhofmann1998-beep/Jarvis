@@ -1,7 +1,10 @@
 import type { Env } from "./index.ts";
 import { regelLernen, regelVergessen } from "./gedaechtnis.ts";
-import { OBJEKTE, STANDORTE, type ListenDef } from "./listen.ts";
+import { FUNDE, OBJEKTE, STANDORTE, type ListenDef } from "./listen.ts";
 import { merke, zeileAendern, zeileAnlegen, zeilenSuchen } from "./notion.ts";
+import { ladeBerichte, markiereGelesen } from "./berichte.ts";
+import { ladeAbsender, ladeProfil } from "./suchprofil.ts";
+import { STANDARD_ABSENDER } from "./suchlib.ts";
 import { indikatoren, kursAbrufen, lagebildDaten, symbolSuche, wirtschaftskalender, zinsen } from "./markt.ts";
 import { termineAbrufen, terminEintragen, terminVerschieben } from "./kalender.ts";
 import { gmailEntwurf, gmailLesen, gmailNeue, gmailSortieren, gmailSuchen, gmailWichtige } from "./gmail.ts";
@@ -186,6 +189,60 @@ export const WERKZEUGE: Werkzeug[] = [
       input_schema: { type: "object", properties: {} },
     },
     run: (_i, env) => lagebildDaten(env),
+  },
+  {
+    def: {
+      name: "suchprofil_setzen",
+      description: "Speichert das Suchprofil für den Such-Agenten (Immobilien): Region, Preisrahmen, Objektart, Mindestrendite, Standortkriterien wie Uni, Bevölkerungswachstum, starke Arbeitgeber, Ausschlüsse. Ersetzt das alte Profil, fasse neue und alte Wünsche zusammen.",
+      input_schema: { type: "object", properties: { profil: { type: "string" } }, required: ["profil"] },
+    },
+    run: async (i, env) => {
+      const p = String(i.profil ?? "").trim().slice(0, 2000);
+      if (!p) return "Leeres Profil.";
+      await env.SPEICHER?.put("suchprofil", p);
+      return "Suchprofil gespeichert.";
+    },
+  },
+  {
+    def: { name: "suchprofil_zeigen", description: "Zeigt das aktuelle Suchprofil des Such-Agenten.", input_schema: { type: "object", properties: {} } },
+    run: async (_i, env) => (await ladeProfil(env)) || "Es gibt noch kein Suchprofil.",
+  },
+  {
+    def: {
+      name: "suchagent_portale",
+      description: "Verwaltet die Absender-Domains der Portale, deren Suchauftrag-Mails der Such-Agent liest (zum Beispiel immowelt.at). Ohne Angabe zeigt es die Liste. hinzufuegen ergänzt, ersetzen überschreibt, standard setzt die Standardliste zurück.",
+      input_schema: { type: "object", properties: { hinzufuegen: { type: "array", items: { type: "string" } }, ersetzen: { type: "array", items: { type: "string" } }, standard: { type: "boolean" } } },
+    },
+    run: async (i, env) => {
+      let liste = await ladeAbsender(env);
+      if (i.standard) liste = STANDARD_ABSENDER;
+      if (Array.isArray(i.ersetzen) && i.ersetzen.length) liste = i.ersetzen.map((x: any) => String(x).trim().toLowerCase());
+      if (Array.isArray(i.hinzufuegen)) liste = [...new Set([...liste, ...i.hinzufuegen.map((x: any) => String(x).trim().toLowerCase())])];
+      liste = liste.filter(Boolean).slice(0, 30);
+      if (i.standard || i.ersetzen || i.hinzufuegen) await env.SPEICHER?.put("suchagent:absender", JSON.stringify(liste));
+      return "Absender: " + liste.join(", ");
+    },
+  },
+  {
+    def: {
+      name: "funde_zeigen",
+      description: "Zeigt die neuesten Funde des Such-Agenten aus Notion. Optional nur eine Bewertung (Top, Gut, Prüfen). Kommen keine Funde, erinnere Alex daran, auf den Portalen Suchaufträge mit E-Mail-Benachrichtigung an sein Gmail anzulegen.",
+      input_schema: { type: "object", properties: { bewertung: { type: "string" } } },
+    },
+    run: (i, env) => zeilenSuchen(env, FUNDE, i.bewertung ? { spalte: "Bewertung", wert: String(i.bewertung) } : {}),
+  },
+  {
+    def: {
+      name: "berichte_lesen",
+      description: "Liest Berichte aus dem Hintergrund (zum Beispiel neue Top-Funde) mit Volltext. Standardmäßig die ungelesenen. Markiert sie danach als gelesen.",
+      input_schema: { type: "object", properties: { alle: { type: "boolean" } } },
+    },
+    run: async (i, env) => {
+      const liste = (await ladeBerichte(env)).filter((b) => i.alle || !b.gelesen).slice(-8);
+      if (!liste.length) return "Keine Berichte.";
+      await markiereGelesen(env, liste.map((b) => b.id));
+      return liste.map((b) => b.titel + " (" + b.zeit.slice(0, 16).replace("T", " ") + " UTC)\n" + (b.text ?? b.kurz)).join("\n\n");
+    },
   },
   {
     def: {

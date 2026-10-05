@@ -59,6 +59,14 @@ button.primaer{background:#d2691e;border-color:#d2691e;color:#fff}
 </div>
 
 <div class="karte">
+  <h2>Such-Agent (Immobilien)</h2>
+  <div id="sstatus" class="status">noch nicht gelaufen</div>
+  <p class="klein">Lege auf den Immobilienportalen Suchaufträge mit E-Mail-Benachrichtigung an dein <strong>Gmail</strong> an. Jarvis liest diese Mails stündlich, bewertet die Inserate nach deinem Suchprofil und legt sie in Notion unter Funde ab. Das Suchprofil sagst du Jarvis in der App ("Mein Suchprofil: …").</p>
+  <button id="sstart">Jetzt einmal laufen lassen</button>
+  <div id="smeld" class="meld"></div>
+</div>
+
+<div class="karte">
   <h2>GMX</h2>
   <p class="klein">Für GMX gibt es keine saubere Schnittstelle. Richte in GMX unter <strong>E-Mail, Einstellungen, Weiterleitung</strong> eine Weiterleitung an dein Gmail ein. Dann liest Jarvis alles an einer Stelle.</p>
 </div>
@@ -86,6 +94,8 @@ async function laden(){
   try {
     var s = await api("/einrichten/status");
     var g = s.google;
+    var sa = s.suchagent;
+    $("sstatus").textContent = sa ? ("letzter Lauf " + sa.zeit.slice(0, 16).replace("T", " ") + " UTC: " + sa.ergebnis) : "noch nicht gelaufen";
     var el = $("gstatus");
     if (g.verbunden) { el.textContent = "verbunden" + (g.email ? " (" + g.email + ")" : ""); el.className = "status ok"; }
     else if (g.client) { el.textContent = "Client gespeichert, noch nicht verbunden"; el.className = "status"; }
@@ -124,6 +134,15 @@ $("verbinden").addEventListener("click", async function(){
     var d = await api("/google/start", { method: "POST" });
     location.href = d.url;
   } catch (e) { meld(e.message, true); }
+});
+$("sstart").addEventListener("click", async function(){
+  $("smeld").textContent = "Läuft … das kann einen Moment dauern.";
+  $("smeld").className = "meld";
+  try {
+    var d = await api("/hintergrund/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ runde: "suchagent" }) });
+    $("smeld").textContent = d.ergebnis;
+    laden();
+  } catch (e) { $("smeld").textContent = e.message; $("smeld").className = "meld fehler"; }
 });
 $("trennen").addEventListener("click", async function(){
   try { await api("/einrichten/google/trennen", { method: "POST" }); meld("Getrennt."); laden(); } catch (e) { meld(e.message, true); }

@@ -9,6 +9,8 @@ import { jarvis } from "./jarvis.ts";
 import { kurzantwort } from "./kurz.ts";
 import { protokolliere } from "./notion.ts";
 import { fehlversuch, istGesperrt } from "./ratelimit.ts";
+import { baueAnhaenge } from "./dateien.ts";
+import { suchagentLauf } from "./suchagent.ts";
 import { bereinigeVerlauf } from "./verlauf.ts";
 import { erkenne } from "./whisper.ts";
 
@@ -73,7 +75,10 @@ export default {
         google: (await googleStatus(env)).verbunden,
       });
     }
-    if (get && pfad === "/einrichten/status") return Response.json({ google: await googleStatus(env) });
+    if (get && pfad === "/einrichten/status") {
+      const letzter = await env.SPEICHER?.get("suchagent:letzter");
+      return Response.json({ google: await googleStatus(env), suchagent: letzter ? JSON.parse(letzter) : null });
+    }
     if (request.method === "POST" && pfad === "/einrichten/google") return googleSpeichern(request, env);
     if (request.method === "POST" && pfad === "/einrichten/google/trennen") {
       await trenne(env);
@@ -90,7 +95,18 @@ export default {
     if (request.method === "POST" && pfad === "/gespraech") return gespraech(request, env, ctx);
     if (request.method === "POST" && pfad === "/befehl") return befehl(request, env, ctx);
 
+    if (request.method === "POST" && pfad === "/hintergrund/start") {
+      const b = (await request.json().catch(() => ({}))) as { runde?: string };
+      if (b.runde !== "suchagent") return Response.json({ fehler: "Unbekannte Runde. Möglich: suchagent." }, { status: 400 });
+      return Response.json({ ergebnis: await suchagentLauf(env) });
+    }
+
     return new Response("Nicht gefunden.", { status: 404, headers: TEXT });
+  },
+
+  // Zeitplan (Cron): stündlich zur Viertelstunde läuft der Such-Agent
+  async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(suchagentLauf(env).then(() => undefined));
   },
 };
 
@@ -106,6 +122,7 @@ async function gespraech(request: Request, env: Env, ctx: ExecutionContext): Pro
   ctx.waitUntil(
     (async () => {
       let gesagt = "";
+      let bloecke: any[] = [];
       try {
         let text = "";
         let verlauf: unknown = [];
@@ -121,9 +138,15 @@ async function gespraech(request: Request, env: Env, ctx: ExecutionContext): Pro
           if (typeof v === "string") {
             try { verlauf = JSON.parse(v); } catch { verlauf = []; }
           }
-          if (datei && typeof datei !== "string") {
+          const t0 = form.get("text");
+          if (typeof t0 === "string") text = t0.trim();
+          if (datei && typeof datei !== "string" && datei.size > 0) {
             text = await erkenne(env.AI, await datei.arrayBuffer());
           }
+          const anh = await baueAnhaenge(form.getAll("datei").filter((x): x is File => typeof x !== "string"));
+          bloecke = anh.bloecke;
+          if (anh.fehler.length) sende({ t: "hinweis", text: anh.fehler.join(" ") });
+          if (!text && bloecke.length) text = "Schau dir den Anhang an und gib mir deine Einschätzung.";
         }
 
         gesagt = text;
@@ -133,14 +156,14 @@ async function gespraech(request: Request, env: Env, ctx: ExecutionContext): Pro
           return;
         }
 
-        const kurz = kurzantwort(text);
+        const kurz = bloecke.length ? null : kurzantwort(text);
         if (kurz) {
           sende({ t: "satz", text: kurz.antwort });
           sende({ t: "fertig", antwort: kurz.antwort, ende: kurz.ende });
           return;
         }
 
-        const antwort = await jarvis(text, bereinigeVerlauf(verlauf), env, (satz) => sende({ t: "satz", text: satz }));
+        const antwort = await jarvis(text, bereinigeVerlauf(verlauf), env, (satz) => sende({ t: "satz", text: satz }), bloecke);
         sende({ t: "fertig", antwort });
         ctx.waitUntil(protokolliere(env, { befehl: text, antwort, quelle: "App", erfolg: true }));
       } catch (err) {

@@ -79,3 +79,13 @@ export function extrahiereText(payload: any): string {
   const html = finde(payload, "text/html");
   return html ? htmlZuText(html) : "";
 }
+
+// Sucht in einer Gmail-Nachricht den ersten Teil mit dem gewünschten Typ (text/plain oder text/html)
+export function findeTeil(payload: any, typ: string): string {
+  if (payload?.mimeType === typ && payload.body?.data) return base64UrlZuText(payload.body.data);
+  for (const t of payload?.parts ?? []) {
+    const r = findeTeil(t, typ);
+    if (r) return r;
+  }
+  return "";
+}

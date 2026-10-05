@@ -45,6 +45,8 @@ main{height:100%;display:flex;flex-direction:column;align-items:center;padding:e
 @keyframes atmen{0%,100%{transform:scale(1)}50%{transform:scale(1.035)}}
 @keyframes puls{0%,100%{transform:scale(1);box-shadow:0 0 60px rgba(210,105,30,.35)}50%{transform:scale(1.06);box-shadow:0 0 95px rgba(235,150,70,.6)}}
 @keyframes drehen{to{transform:rotate(360deg)}}
+#chips{width:100%;max-width:520px;display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;font-size:12px;color:#a9a39a}
+.chip{background:#161617;border:1px solid #2a2a2c;border-radius:99px;padding:4px 10px;cursor:pointer}
 #status{font-size:15px;color:#a9a39a;min-height:20px;text-align:center}
 #fehler{font-size:13px;color:#e8665a;text-align:center;max-width:90%;min-height:16px}
 .leiste{width:100%;max-width:520px;display:flex;gap:8px}
@@ -76,7 +78,9 @@ button.kopfknopf{min-height:0;padding:6px 10px;border:none;background:none;color
     <div id="status">Tippe auf die Kugel</div>
     <div id="fehler"></div>
   </div>
+  <div id="chips"></div>
   <div class="leiste">
+    <button id="datei" title="Bild oder PDF anhängen">Anhang</button><input type="file" id="dateiwahl" accept="image/*,application/pdf" multiple hidden>
     <input id="eingabe" type="text" placeholder="Oder schreib Jarvis …" autocomplete="off" enterkeyhint="send">
     <button id="senden">Senden</button>
   </div>
@@ -107,6 +111,7 @@ var zustand = "ruhe";
 var entsperrt = false;
 var queue = [], spricht = false, serverFertig = true, dauerhoeren = false, beenden = false;
 var stimme = null, aufnahme = null, aktuell = null, pendingNutzer = "";
+var anhaenge = [];
 var TEXTE = { ruhe: "Tippe auf die Kugel", zuhoeren: "Ich höre zu", denken: "Ich denke nach", sprechen: "Ich spreche" };
 
 function setLevel(l){ $("kugel").style.setProperty("--lvl", String(Math.min(1, l))); }
@@ -314,18 +319,76 @@ function sendeAudio(chunks, sr){
   var fd = new FormData();
   fd.append("audio", new Blob([kodiereWav(chunks, sr)], { type: "audio/wav" }), "aufnahme.wav");
   fd.append("verlauf", JSON.stringify(verlauf));
+  anhaengeAnfuegen(fd);
   starte(fd, false);
 }
 function textSenden(){
   var t = $("eingabe").value.trim();
-  if (!t || zustand === "denken") return;
+  if ((!t && !anhaenge.length) || zustand === "denken") return;
   entsperren();
   $("eingabe").value = "";
   if (zustand === "sprechen") abbrechenSprechen();
   if (aufnahme) aufnahme.stopp(false);
   dauerhoeren = false;
   setZustand("denken");
-  starte(JSON.stringify({ text: t, verlauf: verlauf }), true);
+  var fd = new FormData();
+  fd.append("text", t);
+  fd.append("verlauf", JSON.stringify(verlauf));
+  anhaengeAnfuegen(fd);
+  starte(fd, false);
+}
+
+/* ---------- Anhänge (Bilder und PDF) ---------- */
+function chipsZeigen(){
+  var c = $("chips");
+  c.textContent = "";
+  anhaenge.forEach(function(a, idx){
+    var s = document.createElement("span");
+    s.className = "chip";
+    s.textContent = a.name + " ✕";
+    s.addEventListener("click", function(){ anhaenge.splice(idx, 1); chipsZeigen(); });
+    c.appendChild(s);
+  });
+}
+function anhaengeAnfuegen(fd){
+  if (!anhaenge.length) return;
+  var namen = [];
+  anhaenge.forEach(function(a){ fd.append("datei", a.blob, a.name); namen.push(a.name); });
+  tafelAdd("nutzer", "Anhang: " + namen.join(", "));
+  anhaenge = [];
+  chipsZeigen();
+}
+function verkleinere(file){
+  return new Promise(function(res, rej){
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){
+      var m = 1600, s = Math.min(1, m / Math.max(img.width, img.height));
+      var c = document.createElement("canvas");
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob(function(b){ URL.revokeObjectURL(url); if (b) res(b); else rej(new Error("x")); }, "image/jpeg", 0.9);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("x")); };
+    img.src = url;
+  });
+}
+async function dateienWaehlen(files){
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    if (anhaenge.length >= 3) { zeigeFehler("Höchstens 3 Anhänge auf einmal."); break; }
+    try {
+      if (f.type === "application/pdf") {
+        if (f.size > 8 * 1024 * 1024) { zeigeFehler("Die PDF ist größer als 8 MB."); continue; }
+        anhaenge.push({ name: f.name, blob: f });
+      } else if (/^image\//.test(f.type)) {
+        anhaenge.push({ name: f.name.replace(/\.[^.]+$/, "") + ".jpg", blob: await verkleinere(f) });
+      } else {
+        zeigeFehler("Nur Bilder und PDF werden unterstützt.");
+      }
+    } catch (e) { zeigeFehler("Die Datei konnte nicht gelesen werden."); }
+  }
+  chipsZeigen();
 }
 async function starte(body, json){
   var ctrl = new AbortController();
@@ -372,6 +435,8 @@ function verarbeite(zeile){
   if (o.t === "gehoert") {
     pendingNutzer = o.text || "";
     if (pendingNutzer) tafelAdd("nutzer", pendingNutzer);
+  } else if (o.t === "hinweis") {
+    tafelAdd("hinweis", o.text);
   } else if (o.t === "satz") {
     sprich(o.text);
   } else if (o.t === "fertig") {
@@ -398,6 +463,8 @@ $("kugel").addEventListener("click", function(){
   else if (zustand === "sprechen") { abbrechenSprechen(); dauerhoeren = false; setZustand("ruhe"); }
 });
 $("senden").addEventListener("click", textSenden);
+$("datei").addEventListener("click", function(){ $("dateiwahl").click(); });
+$("dateiwahl").addEventListener("change", function(){ dateienWaehlen(Array.prototype.slice.call($("dateiwahl").files)); $("dateiwahl").value = ""; });
 $("eingabe").addEventListener("keydown", function(e){ if (e.key === "Enter") textSenden(); });
 $("tafelbtn").addEventListener("click", function(){ $("tafel").hidden = false; });
 $("zu").addEventListener("click", function(){ $("tafel").hidden = true; });

@@ -109,7 +109,7 @@ export async function zeilenSuchen(
   } else if (opts.text) {
     filter = { property: titel, title: { contains: opts.text } };
   }
-  const d = await api(env, "POST", "/databases/" + id + "/query", { page_size: 10, ...(filter ? { filter } : {}) });
+  const d = await api(env, "POST", "/databases/" + id + "/query", { page_size: 10, sorts: [{ timestamp: "created_time", direction: "descending" }], ...(filter ? { filter } : {}) });
   const zeilen: string[] = [];
   for (const p of d.results ?? []) {
     const teile: string[] = [];
@@ -154,4 +154,19 @@ export async function protokolliere(
   } catch {
     // Protokoll ist Zusatz, Fehler hier bleiben still
   }
+}
+
+// Viele Zeilen anlegen, Schema nur einmal lesen (schont die 50-Abrufe-Grenze)
+export async function zeilenAnlegen(env: Env, def: ListenDef, liste: Record<string, unknown>[]): Promise<number> {
+  if (!liste.length) return 0;
+  const id = await datenbankId(env, def);
+  const { schema } = await schemaVon(env, id);
+  let n = 0;
+  for (const felder of liste) {
+    const { props } = baueProps(schema, felder);
+    if (!Object.keys(props).length) continue;
+    await api(env, "POST", "/pages", { parent: { database_id: id }, properties: props });
+    n++;
+  }
+  return n;
 }

@@ -56,3 +56,20 @@ export const STANDORTE: ListenDef = {
   spalten:
     "Ort, Bundesland, Einwohner, Bevölkerungstrend (Wachsend, Stabil, Schrumpfend, Unklar), Unis / Hochschulen, Studierende, Arbeitgeber (größte Arbeitgeber), Arbeitsmarkt (Stark, Mittel, Schwach, Unklar), Bewertung (Top, Gut, Mittel, Schwach), Notiz, Quelle",
 };
+
+export const FUNDE: ListenDef = {
+  key: "funde",
+  titel: "Jarvis · Funde",
+  properties: {
+    Titel: { title: {} },
+    Ort: { rich_text: {} },
+    Preis: { number: { format: "euro" } },
+    "Fläche": { number: { format: "number" } },
+    Bewertung: opt("Top", "Gut", "Prüfen"),
+    Grund: { rich_text: {} },
+    Link: { url: {} },
+    Portal: { rich_text: {} },
+    Datum: { date: {} },
+  },
+  spalten: "Titel, Ort, Preis, Fläche, Bewertung (Top, Gut, Prüfen), Grund, Link, Portal, Datum",
+};

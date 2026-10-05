@@ -79,7 +79,7 @@ export async function gmailEntwurf(env: Env, o: { thread_id?: string; text: stri
   return "Entwurf liegt in Gmail unter Entwürfe (an " + an.slice(0, 80) + "). Nichts wurde gesendet.";
 }
 
-async function labelId(env: Env, name: string): Promise<string> {
+export async function labelId(env: Env, name: string): Promise<string> {
   const l = await gfetch(env, G + "/labels");
   const vorhanden = (l.labels ?? []).find((x: any) => x.name === name);
   if (vorhanden) return vorhanden.id;
