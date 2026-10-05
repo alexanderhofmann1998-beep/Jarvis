@@ -6,11 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 [observability]
 enabled = true
 
-# Spracherkennung (ab Stufe 1)
+# Spracherkennung (Whisper)
 [ai]
 binding = "AI"
 
-# KV-Speicher (Stufe 0, Schritt 7): erst aktivieren, wenn die ID eingetragen ist
-# [[kv_namespaces]]
-# binding = "SPEICHER"
-# id = "HIER_DIE_KV_ID"
+# KV-Speicher
+[[kv_namespaces]]
+binding = "SPEICHER"
+id = "46080b1ff0a64957b771b53c7543dcc6"

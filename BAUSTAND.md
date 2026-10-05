@@ -16,13 +16,13 @@
 - Stufe 4 (ElevenLabs) vorerst übersprungen
 
 ## Stufen
-- [x] Stufe 0: Grundgerüst-Dateien erstellt (noch nicht in GitHub)
-- [ ] Konten (Anthropic, Cloudflare), Worker verbunden, Secrets
-- [ ] Stufe 1, 2, 3, 5, 6, 7, 9, 10
+- [x] Stufe 0: Konten, Worker mit GitHub verbunden, Secrets, KV-Speicher
+- [~] Stufe 1: Code geschrieben (Gespräch, Whisper, App mit Kugel), noch nicht live getestet
+- [ ] Stufe 2, 3, 5, 6, 7, 9, 10
 
 ## Secrets (nur Namen)
-Noch keine eingerichtet.
+ANTHROPIC_API_KEY, JARVIS_SECRET (Cloudflare, Typ Secret)
+KV-Bindung: SPEICHER (ID in wrangler.toml)
 
 ## Worker-Adresse
-Offen.
-Start
+https://jarvis.alexander-hofmann1998.workers.dev (App unter /app)
