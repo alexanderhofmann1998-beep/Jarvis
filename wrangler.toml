@@ -14,3 +14,7 @@ binding = "AI"
 [[kv_namespaces]]
 binding = "SPEICHER"
 id = "46080b1ff0a64957b771b53c7543dcc6"
+
+[vars]
+# Notion-Seite "Jarvis · Wissen" (kein Geheimnis). Die Datenbanken legt Jarvis selbst darunter an.
+NOTION_WISSEN_ID = "3f064a58e23e80019e8ecb5356036f0c"

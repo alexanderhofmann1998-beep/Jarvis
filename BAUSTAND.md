@@ -17,12 +17,18 @@
 
 ## Stufen
 - [x] Stufe 0: Konten, Worker mit GitHub verbunden, Secrets, KV-Speicher
-- [~] Stufe 1: Code geschrieben (Gespräch, Whisper, App mit Kugel), noch nicht live getestet
-- [ ] Stufe 2, 3, 5, 6, 7, 9, 10
+- [x] Stufe 1: App mit Kugel läuft (getestet)
+- [~] Stufe 2: Code geschrieben (Notion-Gedächtnis, Listen Objekte und Standorte, Protokoll, Regeln), noch nicht live getestet
+- [ ] Stufe 3, 5, 6, 7, 9, 10
 
 ## Secrets (nur Namen)
-ANTHROPIC_API_KEY, JARVIS_SECRET (Cloudflare, Typ Secret)
+ANTHROPIC_API_KEY, JARVIS_SECRET, NOTION_TOKEN (Cloudflare, Typ Secret)
+Variable (wrangler.toml): NOTION_WISSEN_ID
 KV-Bindung: SPEICHER (ID in wrangler.toml)
 
 ## Worker-Adresse
 https://jarvis.alexander-hofmann1998.workers.dev (App unter /app)
+
+## Notion
+- Seite Jarvis · Wissen (mit Integration Jarvis verbunden). Datenbanken Protokoll, Objekte und Standorte legt Jarvis beim ersten Gebrauch selbst darunter an.
+- Standortkriterien: Unis, Bevölkerungswachstum, viele starke Arbeitgeber

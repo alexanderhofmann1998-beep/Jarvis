@@ -4,6 +4,7 @@ import { ICON_192, ICON_512, base64ZuBytes } from "./icon.ts";
 import { fehlerText } from "./fehler.ts";
 import { jarvis } from "./jarvis.ts";
 import { kurzantwort } from "./kurz.ts";
+import { protokolliere } from "./notion.ts";
 import { fehlversuch, istGesperrt } from "./ratelimit.ts";
 import { bereinigeVerlauf } from "./verlauf.ts";
 import { erkenne } from "./whisper.ts";
@@ -13,6 +14,8 @@ export interface Env {
   JARVIS_SECRET?: string;
   AI?: { run(model: string, input: unknown): Promise<unknown> };
   SPEICHER?: KVNamespace;
+  NOTION_TOKEN?: string;
+  NOTION_WISSEN_ID?: string;
 }
 
 const TEXT = { "content-type": "text/plain; charset=utf-8" };
@@ -57,7 +60,7 @@ export default {
     }
 
     if (request.method === "POST" && pfad === "/gespraech") return gespraech(request, env, ctx);
-    if (request.method === "POST" && pfad === "/befehl") return befehl(request, env);
+    if (request.method === "POST" && pfad === "/befehl") return befehl(request, env, ctx);
 
     return new Response("Nicht gefunden.", { status: 404, headers: TEXT });
   },
@@ -74,6 +77,7 @@ async function gespraech(request: Request, env: Env, ctx: ExecutionContext): Pro
 
   ctx.waitUntil(
     (async () => {
+      let gesagt = "";
       try {
         let text = "";
         let verlauf: unknown = [];
@@ -94,6 +98,7 @@ async function gespraech(request: Request, env: Env, ctx: ExecutionContext): Pro
           }
         }
 
+        gesagt = text;
         sende({ t: "gehoert", text });
         if (!text) {
           sende({ t: "fertig", antwort: "" });
@@ -109,8 +114,11 @@ async function gespraech(request: Request, env: Env, ctx: ExecutionContext): Pro
 
         const antwort = await jarvis(text, bereinigeVerlauf(verlauf), env, (satz) => sende({ t: "satz", text: satz }));
         sende({ t: "fertig", antwort });
+        ctx.waitUntil(protokolliere(env, { befehl: text, antwort, quelle: "App", erfolg: true }));
       } catch (err) {
-        sende({ t: "fehler", text: fehlerText(err) });
+        const meldung = fehlerText(err);
+        sende({ t: "fehler", text: meldung });
+        if (gesagt) ctx.waitUntil(protokolliere(env, { befehl: gesagt, antwort: meldung, quelle: "App", erfolg: false }));
       } finally {
         await kette;
         await writer.close();
@@ -123,7 +131,7 @@ async function gespraech(request: Request, env: Env, ctx: ExecutionContext): Pro
   });
 }
 
-async function befehl(request: Request, env: Env): Promise<Response> {
+async function befehl(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   try {
     const b = (await request.json()) as { text?: string };
     const text = (b.text ?? "").trim();
@@ -131,6 +139,7 @@ async function befehl(request: Request, env: Env): Promise<Response> {
     const kurz = kurzantwort(text);
     if (kurz) return new Response(kurz.antwort, { headers: TEXT });
     const antwort = await jarvis(text, [], env, () => {});
+    ctx.waitUntil(protokolliere(env, { befehl: text, antwort, quelle: "Siri", erfolg: true }));
     return new Response(antwort, { headers: TEXT });
   } catch (err) {
     return new Response(fehlerText(err), { status: 500, headers: TEXT });
