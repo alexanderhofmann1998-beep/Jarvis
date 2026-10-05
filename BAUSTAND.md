@@ -19,11 +19,12 @@
 - [x] Stufe 0: Konten, Worker mit GitHub verbunden, Secrets, KV-Speicher
 - [x] Stufe 1: App mit Kugel läuft (getestet)
 - [x] Stufe 2: Notion-Gedächtnis, Listen Objekte und Standorte, Protokoll, Regeln (getestet)
-- [~] Stufe 3: Code geschrieben (Google Kalender, Gmail, Einrichten-Seite unter /einrichten), noch nicht live getestet. WhatsApp-Entwürfe und Apps öffnen nicht gewählt.
+- [x] Stufe 3: Google Kalender und Gmail laufen (getestet), GMX per Filterregel an Gmail weitergeleitet. WhatsApp und Apps öffnen nicht gewählt.
+- [~] Markt-Modul: Code geschrieben (Twelve Data Kurse und Indikatoren, Wirtschaftskalender per Forex-Factory-Feed, FRED-Zinsen, markt_lagebild), noch nicht live getestet
 - [ ] Stufe 5, 6, 7, 9, 10
 
 ## Secrets (nur Namen)
-ANTHROPIC_API_KEY, JARVIS_SECRET, NOTION_TOKEN (Cloudflare, Typ Secret)
+ANTHROPIC_API_KEY, JARVIS_SECRET, NOTION_TOKEN, TWELVEDATA_API_KEY (Cloudflare, Typ Secret). Optional FRED_API_KEY (noch offen)
 Variable (wrangler.toml): NOTION_WISSEN_ID
 KV-Bindung: SPEICHER (ID in wrangler.toml)
 
@@ -37,3 +38,8 @@ https://jarvis.alexander-hofmann1998.workers.dev (App unter /app)
 ## Google
 - Zugang liegt im KV (google:client, google:refresh), nie im Repository. Einrichtung über /einrichten.
 - GMX wird per Weiterleitung nach Gmail geleitet.
+
+## Markt
+- TradingView hat keine Daten-API. Geplant: Alerts per Webhook als Berichte, Chart-Screenshots analysieren (Bild-Upload in der App noch zu bauen), Live-Charts in der Zentrale.
+- Wirtschaftskalender: inoffizieller Feed, nur Prognose und Vorwert.
+- Offen: Such-Agent (Stufe 9), Hintergrund und Morgenbericht (Stufe 5), Zentrale (Stufe 6), Finanzen (Stufe 7)
