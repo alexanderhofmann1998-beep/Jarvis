@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { schluesselPasst } from "../src/auth.ts";
+import { schluesselPasst } from "./auth.ts";
 
 test("richtiges Passwort wird akzeptiert", async () => {
   assert.equal(await schluesselPasst("geheim123", "geheim123"), true);

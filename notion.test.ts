@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { baueProps, blocksZuText, extrahiereId, leseWert, notionFehlerText, zuZahl } from "../src/notionlib.ts";
-import { OBJEKTE, STANDORTE } from "../src/listen.ts";
-import { WERKZEUGE } from "../src/tools.ts";
-import { wissenBlock } from "../src/prompt.ts";
+import { baueProps, blocksZuText, extrahiereId, leseWert, notionFehlerText, zuZahl } from "./notionlib.ts";
+import { OBJEKTE, STANDORTE } from "./listen.ts";
+import { WERKZEUGE } from "./tools.ts";
+import { wissenBlock } from "./prompt.ts";
 
 test("ID aus Notion-Link", () => {
   assert.equal(

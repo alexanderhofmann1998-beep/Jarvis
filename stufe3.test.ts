@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addMinuten, formatTermin, lokalZuIso, normalisiereLokal, offsetFuer } from "../src/zeitlib.ts";
-import { baueRohmail, base64UrlZuText, entferneZitate, extrahiereText, htmlZuText, kodiereBetreff, kopfWert, textZuBase64Url } from "../src/gmaillib.ts";
-import { googleFehlerText } from "../src/google.ts";
-import { EINRICHTEN_HTML } from "../src/einrichten.ts";
-import { WERKZEUGE } from "../src/tools.ts";
-import { APP_HTML } from "../src/app.ts";
+import { addMinuten, formatTermin, lokalZuIso, normalisiereLokal, offsetFuer } from "./zeitlib.ts";
+import { baueRohmail, base64UrlZuText, entferneZitate, extrahiereText, htmlZuText, kodiereBetreff, kopfWert, textZuBase64Url } from "./gmaillib.ts";
+import { googleFehlerText } from "./google.ts";
+import { EINRICHTEN_HTML } from "./einrichten.ts";
+import { WERKZEUGE } from "./tools.ts";
+import { APP_HTML } from "./app.ts";
 
 test("Zeit: Sommer- und Winterzeit", () => {
   assert.equal(offsetFuer("2026-10-06T12:00"), "+02:00");
@@ -61,7 +61,7 @@ test("Einrichten-Seite und App haben gültiges Skript", () => {
 });
 
 test("Datenschutz-Seite nennt Gmail, Kalender und das Nicht-Senden", async () => {
-  const { DATENSCHUTZ_HTML } = await import("../src/datenschutz.ts");
+  const { DATENSCHUTZ_HTML } = await import("./datenschutz.ts");
   assert.match(DATENSCHUTZ_HTML, /Gmail/);
   assert.match(DATENSCHUTZ_HTML, /versendet keine E-Mails/);
 });

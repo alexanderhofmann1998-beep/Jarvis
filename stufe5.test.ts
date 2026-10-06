@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { baueQuery, fundId, fundZuFelder, htmlMitLinks, mergeGesehen, parseFunde, STANDARD_ABSENDER } from "../src/suchlib.ts";
-import { baueAnhaenge } from "../src/dateien.ts";
-import { lageText, ladeBerichte, markiereGelesen, schreibeBericht, ungelesene } from "../src/berichte.ts";
-import { WERKZEUGE } from "../src/tools.ts";
-import { APP_HTML } from "../src/app.ts";
-import { EINRICHTEN_HTML } from "../src/einrichten.ts";
+import { baueQuery, fundId, fundZuFelder, htmlMitLinks, mergeGesehen, parseFunde, STANDARD_ABSENDER } from "./suchlib.ts";
+import { baueAnhaenge } from "./dateien.ts";
+import { lageText, ladeBerichte, markiereGelesen, schreibeBericht, ungelesene } from "./berichte.ts";
+import { WERKZEUGE } from "./tools.ts";
+import { APP_HTML } from "./app.ts";
+import { EINRICHTEN_HTML } from "./einrichten.ts";
 
 function fakeEnv(): any {
   const m = new Map<string, string>();

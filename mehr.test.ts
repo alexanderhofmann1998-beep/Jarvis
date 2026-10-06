@@ -1,11 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bereinigeErkennung } from "../src/whisper.ts";
-import { bereinigeVerlauf } from "../src/verlauf.ts";
-import { kurzantwort } from "../src/kurz.ts";
-import { fehlerText, istModellFehler, pruefeSchluessel } from "../src/fehler.ts";
-import { jetztText } from "../src/zeit.ts";
-import { APP_HTML, MANIFEST } from "../src/app.ts";
+import { bereinigeErkennung } from "./whisper.ts";
+import { bereinigeVerlauf } from "./verlauf.ts";
+import { kurzantwort } from "./kurz.ts";
+import { fehlerText, istModellFehler, pruefeSchluessel } from "./fehler.ts";
+import { jetztText } from "./zeit.ts";
+import { APP_HTML, MANIFEST } from "./app.ts";
 
 test("Whisper-Halluzinationen gelten als nichts gesagt", () => {
   assert.equal(bereinigeErkennung("Untertitel von Amara.org"), "");

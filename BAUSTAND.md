@@ -50,3 +50,7 @@ https://jarvis.alexander-hofmann1998.workers.dev (App unter /app)
 - Cron: stündlich zur Viertelstunde (wrangler.toml). Manuell: Einrichten-Seite, Karte Such-Agent.
 - Absender-Domains und Suchprofil liegen im KV (suchagent:absender, suchprofil). Portal-Suchaufträge mit Mail-Benachrichtigung an Gmail anlegen.
 - Kostenbremse (Stufe 10) fehlt noch: Haiku-Aufrufe nur bei neuen Portal-Mails.
+
+## Struktur
+- Alle Dateien liegen flach im Hauptordner des Repositorys (kein src- und test-Ordner). wrangler.toml: main = "index.ts".
+- Der alte Ordner src und test im Repository ist nicht mehr in Gebrauch und kann gelöscht werden.

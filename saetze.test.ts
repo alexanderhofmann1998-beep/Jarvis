@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createSatzTeiler } from "../src/saetze.ts";
+import { createSatzTeiler } from "./saetze.ts";
 
 function alle(text: string, schritt = 1000): string[] {
   const t = createSatzTeiler();

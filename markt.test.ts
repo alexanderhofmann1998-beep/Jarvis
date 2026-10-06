@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { atr, eventZeile, filtereEvents, fredSerie, fredZeile, normalisiereSymbol, preis, rsi, sma, tdFehlerText, zahl } from "../src/marktlib.ts";
-import { WERKZEUGE } from "../src/tools.ts";
+import { atr, eventZeile, filtereEvents, fredSerie, fredZeile, normalisiereSymbol, preis, rsi, sma, tdFehlerText, zahl } from "./marktlib.ts";
+import { WERKZEUGE } from "./tools.ts";
 
 test("Symbole werden erkannt", () => {
   assert.equal(normalisiereSymbol("Gold"), "XAU/USD");
